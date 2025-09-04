@@ -8,6 +8,9 @@ on:
 jobs:
   build_and_scan:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write      # <-- this is the missing piece
+      contents: read
     environment: production
 
     steps:
