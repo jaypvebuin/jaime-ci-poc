@@ -38,11 +38,11 @@ jobs:
           artifact_path: "my-app:latest"        # local image reference
           display_vulnerability_findings: "enabled"
           # Thresholds – tune per your policy (1 means fail if >=1 finding of that severity)
-          critical_threshold: 1
-          high_threshold: 1
-          medium_threshold: 1
-          low_threshold: 1
-          other_threshold: 1
+          critical-threshold: 1
+          high-threshold: 1
+          medium-threshold: 1
+          low-threshold: 1
+          other-threshold: 1
 
       # 5. Show all output formats
       - name: Display CycloneDX SBOM
