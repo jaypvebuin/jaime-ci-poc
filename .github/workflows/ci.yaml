@@ -1,0 +1,73 @@
+name: Build & Scan with Amazon Inspector
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+jobs:
+  build_and_scan:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      # 1. Configure AWS credentials (adjust to your account/role)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
+      # 2. Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 3. Build container image (example, update image name as needed)
+      - name: Build Docker image
+        run: docker build -t my-app:latest .
+
+      # 4. Scan built image with Amazon Inspector
+      - name: Inspector Scan
+        id: inspector
+        uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1
+        with:
+          artifact_type: "container"            # we're scanning a built container
+          artifact_path: "my-app:latest"        # local image reference
+          display_vulnerability_findings: "enabled"
+          # Thresholds – tune per your policy (1 means fail if >=1 finding of that severity)
+          critical_threshold: 1
+          high_threshold: 1
+          medium_threshold: 1
+          low_threshold: 1
+          other_threshold: 1
+
+      # 5. Show all output formats
+      - name: Display CycloneDX SBOM
+        run: cat "${{ steps.inspector.outputs.artifact_sbom }}"
+
+      - name: Display Inspector Results (JSON)
+        run: cat "${{ steps.inspector.outputs.inspector_scan_results }}"
+
+      - name: Display Inspector Results (CSV)
+        run: cat "${{ steps.inspector.outputs.inspector_scan_results_csv }}"
+
+      - name: Display Inspector Results (Markdown)
+        run: cat "${{ steps.inspector.outputs.inspector_scan_results_markdown }}"
+
+      # 6. Upload artifacts so you can download them from the Actions UI
+      - name: Upload Inspector Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: amazon-inspector-results
+          path: |
+            ${{ steps.inspector.outputs.artifact_sbom }}
+            ${{ steps.inspector.outputs.inspector_scan_results }}
+            ${{ steps.inspector.outputs.inspector_scan_results_csv }}
+            ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
+
+      # 7. Fail job if thresholds exceeded
+      - name: Fail if vulnerability threshold exceeded
+        if: ${{ steps.inspector.outputs.vulnerability_threshold_exceeded == 'true' }}
+        run: |
+          echo "Vulnerability threshold exceeded. Failing the job."
+          exit 1
