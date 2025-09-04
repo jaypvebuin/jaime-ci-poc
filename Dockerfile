@@ -1,3 +1,3 @@
 # Dockerfile
-FROM ubuntu:14.04      # very old, many CVEs
+FROM ubuntu:14.04
 CMD ["echo", "Intentional vuln test"]
